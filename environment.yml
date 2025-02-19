@@ -1,0 +1,15 @@
+name: EuroSAT
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.11  # Specify the Python version
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - pip
+  - pillow
+  - pip:
+      - transformers
+      - torch
