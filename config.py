@@ -19,5 +19,5 @@ CLASSNAME_DICT = {
     'PermanentCrop': 'Permanent Crop',
     'Residential': 'Residential',
     'River': 'River',
-    'SeaLake': 'Sea or Lake'
+    'SeaLake': 'Sea Lake'
 }
