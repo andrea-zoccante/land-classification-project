@@ -20,13 +20,13 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from tqdm import tqdm
 from config import CLASSES, MOD_CLASSES
 from imageDatasets import EuroSATDataset
+from classifiers import MLPClassifier, LinearClassifier
 
 class customCLIP:
     def __init__(self, 
                  model_name = "openai/clip-vit-base-patch32", 
                  full_prompt=True, 
-                 modify=False,
-                 training_mode=None):
+                 modify=False):
         self.clip_model = CLIPModel.from_pretrained(model_name)
         self.clip_processor = CLIPProcessor.from_pretrained(model_name)
         self.device = (
@@ -50,7 +50,7 @@ class customCLIP:
         self.val_labels = torch.tensor([CLASSES.index(cls) for cls in val_df["Class"].tolist()], dtype=torch.long).to(self.device)
         self.val_image_paths = val_df["Image Path"].tolist()
 
-        self.mode = training_mode
+        # self.mode = training_mode
 
         pass
     def classify_images_clip(self, image_paths):
@@ -113,35 +113,40 @@ class customCLIP:
         return results_df 
     
     def extract_image_features_with_text(self, image_paths):
-        
-
         images = [Image.open(img_path).convert("RGB") for img_path in image_paths]
         text_inputs = [f"A satellite image of {cls}" for cls in self.class_labels]
 
-        inputs = self.processor(text=text_inputs, images=images, return_tensors="pt", padding=True).to(self.device)
+        inputs = self.clip_processor(text=text_inputs, images=images, return_tensors="pt", padding=True).to(self.device)
         
         with torch.no_grad():
-            image_features = self.model.get_image_features(pixel_values=inputs["pixel_values"])
+            image_features = self.clip_model.get_image_features(pixel_values=inputs["pixel_values"])
         
         return image_features.cpu()
     
-    def train_LinearProbe(self, few_shot, model_info):
-
-        val_image_features = self.extract_image_features_with_text(self.val_image_paths, self.class_names)
-
-        classifier_name = model_info[0]
-        classifier_model = model_info[1]
-            
-        print(f"\nLinear-Probe ({classifier_name}) finetuning with {few_shot} images per class...")
+    def train(self, few_shot, mode: str):
+        if mode.lower() not in ["linear_probe", "mlp_probe", "logteg_probe", "coop"]:
+            raise ValueError(f"{mode} not recognized, must be one of: [linear_probe, mlp_probe, logteg_probe, coop]")
+        val_image_features = self.extract_image_features_with_text(self.val_image_paths)
 
         few_shot_df = pd.read_csv(f"few_shot_data/few_shot_{few_shot}.csv")
         few_shot_image_features = self.extract_image_features_with_text(few_shot_df["Image Path"].tolist())
         few_shot_labels = torch.tensor([CLASSES.index(cls) for cls in few_shot_df["Class"]], dtype=torch.long).to(self.device)
 
-        if self.mode == "LinearProbe":
+        if mode == "Linear_Probe" or mode == "MLP_Probe":
+            classifier_model = {"Linear_Probe": LinearClassifier, "MLP_Probe": MLPClassifier}[mode]
             classifier = classifier_model(input_dim=few_shot_image_features.shape[1], num_classes=len(CLASSES)).to(self.device)
-            criterion = nn.CrossEntropyLoss()
-            optimizer = optim.Adam(classifier.parameters(), lr=0.001)
+
+            print(f"\nLinear-Probe ({mode}) finetuning with {few_shot} images per class...")
+            self.train_LinearProbe(classifier=classifier, 
+                                   image_features=few_shot_image_features,
+                                   labels=few_shot_labels,
+                                   val_image_features=val_image_features)
+    
+    def train_LinearProbe(self, classifier, image_features, labels, val_image_features):
+
+        
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(classifier.parameters(), lr=0.001)
         
         losses = []
         val_losses = []
@@ -151,8 +156,8 @@ class customCLIP:
             classifier.train()
             optimizer.zero_grad()
             
-            logits = classifier(few_shot_image_features.to(self.device))
-            loss = criterion(logits, few_shot_labels)
+            logits = classifier(image_features.to(self.device))
+            loss = criterion(logits, labels)
             loss.backward()
             optimizer.step()
             
@@ -178,7 +183,6 @@ class customCLIP:
     
         
         results = {
-            "model_name": classifier_name,
             "model": classifier,
             "losses": losses,
             "val_losses": val_losses,
@@ -186,7 +190,8 @@ class customCLIP:
         }
         return results
         
-# customclip = customCLIP(model_name="openai/clip-vit-base-patch32")
+# customclip = customCLIP(model_name="openai/clip-vit-base-patch32", full_prompt=True, modify=True)
+# results = customclip.train(few_shot=8, mode="Linear_Probe")
 # # image_path = "2750/Forest/Forest_100.jpg"
 # # best_class_index = customclip.classify_images_clip([image_path])
 # # print(f"Predicted Class: {CLASSES[best_class_index]}")
