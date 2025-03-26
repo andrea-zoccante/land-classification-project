@@ -9,6 +9,19 @@ CLASSES = [
     'River', 
     'SeaLake']
 
+MOD_CLASSES = [
+    'Annual Crop',
+    'Forest',
+    'Herbaceous Vegetation',
+    'Highway',
+    'Industrial',
+    'Pasture',
+    'Permanent Crop',
+    'Residential',
+    'River',
+    'Sea Lake'
+]
+
 CLASSNAME_DICT = {
     'AnnualCrop': 'Annual Crop',
     'Forest': 'Forest',
