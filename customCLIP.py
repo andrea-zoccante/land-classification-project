@@ -33,7 +33,8 @@ class customCLIP:
                  model_name = "openai/clip-vit-base-patch32", 
                  full_prompt=True, 
                  modify=True,
-                 augment_hue=False):
+                 augment_hue=False,
+                 prompt_template="A satellite image of"):
         self.clip_model = CLIPModel.from_pretrained(model_name)
         for param in self.clip_model.parameters():
             param.requires_grad = False
@@ -48,6 +49,7 @@ class customCLIP:
         self.image_dataset = EuroSATDataset("2750/")
 
         self.full_prompt = full_prompt
+        self.prompt_template = prompt_template
         if modify:
             self.class_labels = MOD_CLASSES
         else:
@@ -113,7 +115,7 @@ class customCLIP:
             images.append(image)
         
         if text_inputs is None:
-            text_inputs = [f"A satellite image of {cls}" for cls in self.class_labels] if self.full_prompt else self.class_labels
+            text_inputs = [f"{self.prompt_template} {cls}" for cls in self.class_labels] if self.full_prompt else self.class_labels
 
         if not coop:
             inputs = self.clip_processor(text=text_inputs, images=images, return_tensors="pt", padding=True).to(self.device)
@@ -156,7 +158,7 @@ class customCLIP:
                     
                     predictions = probs.argmax(axis=-1)  # Get index of highest probability per sample
                     
-                    return predictions, probs[:, predictions]
+                    return predictions, probs[:, predictions], torch.tensor(probs)
 
 
                 # Apply trained classifier
@@ -180,7 +182,7 @@ class customCLIP:
                 probs = logits.softmax(dim=-1)
                 
             predictions = torch.argmax(probs, dim=-1)
-            return predictions, probs[:, predictions]
+            return predictions, probs[:, predictions], probs
 
     
     def single_class_analysis(self, eval_class):
