@@ -32,7 +32,7 @@ class TextEncoder(nn.Module):
 
         return text_features
 class SimplePromptLearner(nn.Module):
-    def __init__(self, clip_model, classnames, n_ctx=8, ctx_init=None):
+    def __init__(self, clip_model, classnames, n_ctx=8):
         super().__init__()
         self.tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
         self.device = (

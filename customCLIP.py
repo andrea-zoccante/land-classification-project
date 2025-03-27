@@ -32,7 +32,7 @@ class customCLIP:
     def __init__(self, 
                  model_name = "openai/clip-vit-base-patch32", 
                  full_prompt=True, 
-                 modify=False,
+                 modify=True,
                  augment_hue=False):
         self.clip_model = CLIPModel.from_pretrained(model_name)
         for param in self.clip_model.parameters():
@@ -72,7 +72,7 @@ class customCLIP:
 
         if mode not in valid_modes:
             raise ValueError(f"{mode} not recognized. Must be one of: {valid_modes}")
-        
+        print(f"Testing in {mode} mode")
         self.testing_mode = mode
 
     def load_model(self, model_path, mode):
@@ -88,7 +88,7 @@ class customCLIP:
             elif mode == "logreg_probe":
                 self.classifier = joblib.load(model_path)
             elif mode == "coop":
-                prompt_learner = SimplePromptLearner(self.clip_model, self.class_labels, n_ctx=16, ctx_init=None).to(self.device)
+                prompt_learner = SimplePromptLearner(self.clip_model, self.class_labels, n_ctx=16).to(self.device)
                 prompt_learner.load_state_dict(torch.load(model_path, map_location=self.device))
                 self.prompt_learner = prompt_learner
             
@@ -252,7 +252,7 @@ class customCLIP:
                 torch.save(self.classifier.state_dict(), save_path)
                 print(f"{mode} model saved at {save_path}")
         elif mode == "coop":
-            prompt_learner = SimplePromptLearner(self.clip_model, self.class_labels, n_ctx=16, ctx_init=None).to(self.device)
+            prompt_learner = SimplePromptLearner(self.clip_model, self.class_labels, n_ctx=16).to(self.device)
             text_encoder = TextEncoder(clip_model=self.clip_model).to(self.device)
             results = self.train_model(model=prompt_learner, 
                                        mode=mode,
