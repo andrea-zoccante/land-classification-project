@@ -141,7 +141,6 @@ class customCLIP:
                 outputs = self.clip_model(**inputs)
                 logits_per_image = outputs.logits_per_image
                 probs = logits_per_image.softmax(dim=1)
-                return probs.argmax(dim=-1)
 
             elif self.testing_mode == "probe":
                 if self.classifier is None:
@@ -151,12 +150,17 @@ class customCLIP:
                 image_features = self.clip_model.get_image_features(pixel_values=inputs["pixel_values"]).to(self.device)
 
                 if isinstance(self.classifier, LogisticRegression):  
-                    predictions = self.classifier.predict(image_features.cpu().numpy())  # Convert tensor to NumPy
-                    return torch.tensor(predictions, dtype=torch.long, device=self.device)  # Convert back to tensor
+                    # Get probability distributions for each class
+                    probs = self.classifier.predict_proba(image_features.cpu().numpy())  # Shape: (num_samples, num_classes)
+                    
+                    predictions = probs.argmax(axis=-1)  # Get index of highest probability per sample
+                    
+                    return predictions, probs[:, predictions]
+
 
                 # Apply trained classifier
                 logits = self.classifier(image_features)
-                return logits.argmax(dim=-1)
+                probs = logits.softmax(dim=-1)
             
             elif self.testing_mode == "coop":
                 if self.prompt_learner is None:
@@ -168,12 +172,14 @@ class customCLIP:
                 text_features = text_encoder(prompts)
                 image_features = self.clip_model.get_image_features(pixel_values=inputs["pixel_values"]).to(self.device)
                 
-                logit_scale = self.clip_model.logit_scale.exp()
-                test_logits = image_features @ text_features.T
-                test_logits *= logit_scale
+                # logit_scale = self.clip_model.logit_scale.exp()
+                logits = image_features @ text_features.T
+                # logits *= logit_scale
+
+                probs = logits.softmax(dim=-1)
                 
-                predictions = torch.argmax(test_logits, dim=1)
-                return torch.tensor(predictions, dtype=torch.long, device=self.device)
+            predictions = torch.argmax(probs, dim=-1)
+            return predictions, probs[:, predictions]
 
     
     def single_class_analysis(self, eval_class):
@@ -187,7 +193,7 @@ class customCLIP:
         for img_paths, labels in tqdm(class_dataloader, desc=f"Classifying {eval_class} batches: ", leave=True):
             y_true.extend(labels.cpu().numpy())
 
-            preds = self.classify_images_clip(image_paths=img_paths)
+            preds, _ = self.classify_images_clip(image_paths=img_paths)
             y_pred.extend(preds.cpu().numpy())
 
         results = {
