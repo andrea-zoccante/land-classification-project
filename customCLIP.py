@@ -58,6 +58,7 @@ class customCLIP:
 
         self.val_labels = torch.tensor([CLASSES.index(cls) for cls in val_df["Class"].tolist()], dtype=torch.long).to(self.device)
         self.val_image_paths = val_df["Image Path"].tolist()
+        self.val_image_inputs = self.process_images(val_df["Image Path"].tolist(), coop=True)
 
         self.classifier = None
         self.prompt_learner = None
@@ -238,7 +239,6 @@ class customCLIP:
         if mode == "coop":
             few_shot_image_inputs = self.process_images(few_shot_df["Image Path"].tolist(), coop=True)
         else:
-            few_shot_image_inputs = self.process_images(few_shot_df["Image Path"].tolist(), coop=False)
             few_shot_image_features = self.extract_image_features_with_text(few_shot_df["Image Path"].tolist())
         
         few_shot_labels = torch.tensor([CLASSES.index(cls) for cls in few_shot_df["Class"]], dtype=torch.long).to(self.device)        
@@ -303,6 +303,8 @@ class customCLIP:
         optimizer = optim.Adam(model.parameters(), lr=lr)
         
         losses = []
+        val_losses = []
+        val_accuracies = []
         
         for epoch in range(1001):
             optimizer.zero_grad()
@@ -318,10 +320,25 @@ class customCLIP:
             losses.append(loss.item())
 
             if epoch % 250 == 0:  
-                print(f"Epoch [{epoch}/{1000}] | Train Loss: {loss.item():.4f} | ")
+                with torch.no_grad():
+                    if mode in ["linear_probe", "mlp_probe"]:
+                        val_logits = model(self.val_image_features.to(self.device))
+                    elif mode == "coop":
+                        val_logits = self.get_logits_CoOp(model, text_encoder, self.val_image_inputs)
+                    # val_logits = classifier(self.val_image_features.to(device))
+                    val_loss = criterion(val_logits, self.val_labels)
+                    
+                    predictions = torch.argmax(val_logits, dim=1)
+                
+                accuracy = (predictions == self.val_labels).float().mean().item()
+                
+                val_accuracies.append(accuracy)
+                val_losses.append(val_loss.item())
+                print(f"Epoch [{epoch}/{1000}] | Train Loss: {loss.item():.4f} | Val Loss {val_loss.item():.4f} | Val Acc: {accuracy * 100:.2f}%")
         results = {
             "model": model,
             "losses": losses,
+            "val_losses": val_losses
         }
         return results
 
