@@ -1,17 +1,12 @@
 # libraries
-
 import os
-# import numpy as np
 import pandas as pd
 import joblib
-# import matplotlib.pyplot as plt
 from PIL import Image, ImageEnhance
 import random
 
-# from glob import glob
 import torch
 import torch.nn as nn
-# import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
@@ -19,7 +14,6 @@ from transformers import CLIPProcessor, CLIPModel
 
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.linear_model import LogisticRegression
-# import seaborn as sns
 
 from tqdm import tqdm
 from config import CLASSES, MOD_CLASSES
@@ -84,10 +78,13 @@ class customCLIP:
 
     def set_testing_mode(self, mode):
         mode = mode.lower()
-        valid_modes = ["zeroshot", "probe", "coop"]
+        valid_modes = ["zeroshot", "linear_probe", "mlp_probe", "logreg_probe", "probe", "coop"]
 
         if mode not in valid_modes:
             raise ValueError(f"{mode} not recognized. Must be one of: {valid_modes}")
+        
+        if mode in ["linear_probe", "mlp_probe", "logreg_probe"]:
+            mode = "probe"
         print(f"Testing in {mode} mode")
         self.testing_mode = mode
 
@@ -188,9 +185,7 @@ class customCLIP:
                 text_features = text_encoder(prompts)
                 image_features = self.clip_model.get_image_features(pixel_values=inputs["pixel_values"]).to(self.device)
                 
-                # logit_scale = self.clip_model.logit_scale.exp()
                 logits = image_features @ text_features.T
-                # logits *= logit_scale
 
                 probs = logits.softmax(dim=-1)
                 
@@ -265,7 +260,6 @@ class customCLIP:
                                        labels=few_shot_labels,
                                        image_features=few_shot_image_features
                                        )
-            # results = self.train_LinearProbe(classifier, few_shot_image_features, few_shot_labels, val_image_features)
             self.classifier = results["model"]
 
             if save_model:
@@ -296,21 +290,6 @@ class customCLIP:
                 save_path = f"models/classifiers/{mode}/{few_shot}-shot.pkl"
                 joblib.dump(log_reg, save_path)
                 print(f"Logistic Regression model saved at {save_path}")
-
-        # prompts = prompt_learner()
-        
-        # # Get updated text features using learned prompts, and image features
-        # text_features = text_encoder(prompts)
-        # image_features = clip_model.get_image_features(**inputs)
-
-        # # Normalize features
-        # text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-        # image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-
-        # # Compute cosine similarity
-        # logit_scale = clip_model.logit_scale.exp()
-        # logits = image_features @ text_features.T
-        # logits *= logit_scale
 
     def train_model(self, model, mode, labels, image_features=None, text_encoder=None, inputs=None):
         lr = {"coop": 0.01, "linear_probe": 0.001, "mlp_probe": 0.001}[mode]
@@ -373,50 +352,3 @@ class customCLIP:
         logits = image_features @ text_features.T
         logits *= logit_scale
         return logits
-
-    
-    # def train_LinearProbe(self, classifier, image_features, labels, val_image_features):
-    #     criterion = nn.CrossEntropyLoss()
-    #     optimizer = optim.Adam(classifier.parameters(), lr=0.001)
-        
-    #     losses = []
-    #     val_losses = []
-    #     val_accuracies = []
-        
-    #     for epoch in range(1001):
-    #         # classifier.train()
-    #         optimizer.zero_grad()
-            
-    #         logits = classifier(image_features.to(self.device))
-    #         loss = criterion(logits, labels)
-    #         loss.backward()
-    #         optimizer.step()
-            
-    #         losses.append(loss.item())
-            
-    #         if epoch % 50 == 0:
-    #             with torch.no_grad():
-    #                 val_logits = classifier(val_image_features.to(self.device))
-    #                 val_loss = criterion(val_logits, self.val_labels)
-                    
-    #                 predictions = torch.argmax(val_logits, dim=1)
-                
-    #             accuracy = (predictions == self.val_labels).float().mean().item()
-                
-    #             val_accuracies.append(accuracy)
-    #             val_losses.append(val_loss.item())
-                
-    #             if epoch % 250 == 0:  
-    #                 print(f"Epoch [{epoch}/{1000}] | Train Loss: {loss.item():.4f} | "
-    #                     f"Val Loss: {val_loss.item():.4f} | Val Acc: {accuracy * 100:.2f}%")
-    
-        
-    #     results = {
-    #         "classifier": classifier,
-    #         "losses": losses,
-    #         "val_losses": val_losses,
-    #         "val_accuracies": val_accuracies
-    #     }
-    #     return results
-# customclip = customCLIP(model_name="openai/clip-vit-base-patch32", full_prompt=True, modify=True,augment_hue=True)
-# results = customclip.train(few_shot=8, mode="CoOp", save_model=True)

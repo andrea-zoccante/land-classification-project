@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import CLIPModel, AutoTokenizer
+from transformers import AutoTokenizer
 
 
 class TextEncoder(nn.Module):
@@ -51,9 +51,6 @@ class SimplePromptLearner(nn.Module):
         ctx_vectors = torch.empty(self.n_cls, n_ctx, self.ctx_dim, dtype=dtype).to(self.device)
         nn.init.normal_(ctx_vectors, std=0.02)
         prompt_prefix = " ".join(["X"] * n_ctx)
-
-        # print(f'Initial context: "{prompt_prefix}"')
-        # print(f"Number of context words (tokens): {n_ctx}")
 
         self.ctx = nn.Parameter(ctx_vectors, requires_grad=True).to(self.device)  # to be optimized
 
