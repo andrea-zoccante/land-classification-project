@@ -1,12 +1,13 @@
 name: land-classification
 channels:
   - defaults
+  - conda-forge
+  - pytorch  # Add pytorch channel for torch and torchvision
 dependencies:
-  - matplotlib
-  - numpy[version='<2']
-  - pandas
-  - pip
   - python=3.11.11
+  - numpy<2
+  - pandas
+  - matplotlib
   - scikit-learn
   - pillow
   - ipykernel
@@ -16,4 +17,9 @@ dependencies:
   - transformers
   - seaborn
   - streamlit
+  - pip
+  - pip:
+      - requests
+      - tqdm
+
 prefix: /usr/local/Caskroom/miniconda/base/envs/EuroSAT
