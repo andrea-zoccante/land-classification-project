@@ -1,0 +1,32 @@
+# Compiled files
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+
+# Temporary files
+*.synctex.gz
+*.synctex
+*.nav
+*.snm
+
+# PDFs (if you don’t want to track generated PDFs)
+*.pdf
+*.png
+
+# VSCode LaTeX workspace settings
+.vscode/
+
+# Build directories
+build/
+
+task1.ipynb
+task2_old.ipynb
+task2.ipynb
+task3.ipynb
