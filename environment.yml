@@ -13,6 +13,4 @@ dependencies:
   - datasets
   - seaborn
   - streamlit
-  - PIL
-  - os
 prefix: /usr/local/Caskroom/miniconda/base/envs/EuroSAT
