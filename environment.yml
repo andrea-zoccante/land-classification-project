@@ -11,6 +11,9 @@ dependencies:
   - pillow
   - ipykernel
   - datasets
+  - torch
+  - torchvision
+  - transformers
   - seaborn
   - streamlit
 prefix: /usr/local/Caskroom/miniconda/base/envs/EuroSAT
