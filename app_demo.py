@@ -74,28 +74,29 @@ few_shot = None
 if selected_mode != "zeroshot":
     few_shot = st.sidebar.selectbox("Few-Shot Setting", [16, 8, 4, 2, 1], index=1)
 
-loading_placeholder = st.sidebar.empty()
+    loading_placeholder = st.sidebar.empty()
 
-if st.sidebar.button("✅ Load Model"):
-    loading_placeholder.text("⏳ Loading...")
-    # Init model
-    clip_model.set_modify(use_modified)
-    clip_model.set_prompt_template(prompt_prefix)
+    if st.sidebar.button("✅ Load Model"):
+        loading_placeholder.text("⏳ Loading...")
+        # Init model
+        clip_model.set_modify(use_modified)
+        clip_model.set_prompt_template(prompt_prefix)
 
-    # Fix for ValueError: map probes to 'probe' mode
-    testing_mode = "probe" if selected_mode in ["linear_probe", "mlp_probe", "logreg_probe"] else selected_mode
-    clip_model.set_testing_mode(testing_mode)
+        # Fix for ValueError: map probes to 'probe' mode
+        testing_mode = "probe" if selected_mode in ["linear_probe", "mlp_probe", "logreg_probe"] else selected_mode
+        clip_model.set_testing_mode(testing_mode)
 
-    # Load few-shot model (if applicable)
-    if selected_mode != "zeroshot":
+        # Load few-shot model (if applicable)
         if selected_mode == "coop":
             model_path = f"models/prompt_learners/coop/{few_shot}_shot.pth"
         else:
             ext = "pkl" if selected_mode == "logreg_probe" else "pth"
             model_path = f"models/classifiers/{selected_mode}/{few_shot}-shot.{ext}"
         clip_model.load_model(model_path, mode=selected_mode)
-    loading_placeholder.text("")  # Clear the message once loading is done
-    st.sidebar.success(f"Model Loaded! 🎉 from {model_path}")
+        loading_placeholder.text("")  # Clear the message once loading is done
+        st.sidebar.success(f"Model Loaded! 🎉 from {model_path}")
+else:
+    clip_model.set_testing_mode("zeroshot")
 
 # -------------------- MAIN APP --------------------
 uploaded_file = st.file_uploader("Upload a satellite image", type=["jpg", "jpeg", "png"])
@@ -114,7 +115,7 @@ if uploaded_file:
             pred_idx, top_prob, all_probs = clip_model.classify_images_clip([temp_path])
             pred_label = clip_model.class_labels[pred_idx.item()]
             confidence = top_prob.item() * 100
-
+            
             st.success(f"**Prediction:** {pred_label} ({confidence:.2f}%)")
 
             # ---- EXPANDER: Show All Probabilities ----

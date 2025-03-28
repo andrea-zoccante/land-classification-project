@@ -1,4 +1,4 @@
-name: EuroSAT
+name: land-classification
 channels:
   - defaults
 dependencies:
