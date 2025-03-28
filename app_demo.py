@@ -10,6 +10,29 @@ st.title("🛰️ EuroSAT CLIP Image Classifier")
 st.markdown("""
 Upload a satellite image and classify it into one of the 10 EuroSAT land classes using different trained CLIP models.
 """)
+st.markdown(
+    """
+    <style>
+        div.stButton > button {
+            border-radius: 8px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            transition: 0.3s;
+            border: none;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+        div.stButton > button:hover {
+            background-color: #45a049;
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.3);
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # -------------------- PLACEHOLDERS --------------------
 model_options = {
@@ -23,25 +46,56 @@ model_options = {
 class_names = CLASSES
 modified_names = MOD_CLASSES
 
+if "clip_model" not in st.session_state:
+    st.session_state.clip_model = customCLIP(
+        model_name="openai/clip-vit-base-patch32"
+    )
+clip_model = st.session_state.clip_model
+
+
 # -------------------- SIDEBAR --------------------
 st.sidebar.header("🔧 Settings")
-label_type = st.sidebar.selectbox("Label Style", ["Class Names", "Modified Names"])
+
 selected_model_name = st.sidebar.selectbox("CLIP Model Type", list(model_options.keys()))
 selected_mode = model_options[selected_model_name]
 
 # Conditional: Prompt (only for non-CoOp)
-prompt_prefix = ""
-if selected_mode != "coop":
+prompt_prefix = "A satellite image of"
+use_modified = True
+if selected_mode == "zeroshot":
     prompt_prefix = st.sidebar.text_input("Prompt Template", value="A satellite image of")
+
+    # Label style
+    label_type = st.sidebar.selectbox("Label Style", ["Class Names", "Modified Names"])
+    use_modified = label_type == "Modified Names"
 
 # Conditional: Few-shot models (only for non-zeroshot)
 few_shot = None
 if selected_mode != "zeroshot":
     few_shot = st.sidebar.selectbox("Few-Shot Setting", [16, 8, 4, 2, 1], index=1)
 
-# Label style
-labels = class_names if label_type == "Class Names" else modified_names
-use_modified = label_type == "Modified Names"
+loading_placeholder = st.sidebar.empty()
+
+if st.sidebar.button("✅ Load Model"):
+    loading_placeholder.text("⏳ Loading...")
+    # Init model
+    clip_model.set_modify(use_modified)
+    clip_model.set_prompt_template(prompt_prefix)
+
+    # Fix for ValueError: map probes to 'probe' mode
+    testing_mode = "probe" if selected_mode in ["linear_probe", "mlp_probe", "logreg_probe"] else selected_mode
+    clip_model.set_testing_mode(testing_mode)
+
+    # Load few-shot model (if applicable)
+    if selected_mode != "zeroshot":
+        if selected_mode == "coop":
+            model_path = f"models/prompt_learners/coop/{few_shot}_shot.pth"
+        else:
+            ext = "pkl" if selected_mode == "logreg_probe" else "pth"
+            model_path = f"models/classifiers/{selected_mode}/{few_shot}-shot.{ext}"
+        clip_model.load_model(model_path, mode=selected_mode)
+    loading_placeholder.text("")  # Clear the message once loading is done
+    st.sidebar.success(f"Model Loaded! 🎉 from {model_path}")
 
 # -------------------- MAIN APP --------------------
 uploaded_file = st.file_uploader("Upload a satellite image", type=["jpg", "jpeg", "png"])
@@ -55,26 +109,6 @@ if uploaded_file:
             # Save uploaded image temporarily
             temp_path = "temp_upload.jpg"
             image.save(temp_path)
-
-            # Init model
-            clip_model = customCLIP(
-                model_name="openai/clip-vit-base-patch32",
-                modify=use_modified,
-                prompt_template=prompt_prefix
-            )
-
-            # Fix for ValueError: map probes to 'probe' mode
-            testing_mode = "probe" if selected_mode in ["linear_probe", "mlp_probe", "logreg_probe"] else selected_mode
-            clip_model.set_testing_mode(testing_mode)
-
-            # Load few-shot model (if applicable)
-            if selected_mode != "zeroshot":
-                if selected_mode == "coop":
-                    model_path = f"models/prompt_learners/coop/{few_shot}_shot.pth"
-                else:
-                    ext = "pkl" if selected_mode == "logreg_probe" else "pth"
-                    model_path = f"models/classifiers/{selected_mode}/{few_shot}-shot.{ext}"
-                clip_model.load_model(model_path, mode=selected_mode)
 
             # Classify image and get full probs
             pred_idx, top_prob, all_probs = clip_model.classify_images_clip([temp_path])

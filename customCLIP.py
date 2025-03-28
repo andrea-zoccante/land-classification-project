@@ -61,6 +61,7 @@ class customCLIP:
         self.val_labels = torch.tensor([CLASSES.index(cls) for cls in val_df["Class"].tolist()], dtype=torch.long).to(self.device)
         self.val_image_paths = val_df["Image Path"].tolist()
         self.val_image_inputs = self.process_images(val_df["Image Path"].tolist(), coop=True)
+        self.val_image_features = self.extract_image_features_with_text(val_df["Image Path"].tolist())
 
         self.classifier = None
         self.prompt_learner = None
@@ -68,6 +69,18 @@ class customCLIP:
         self.testing_mode = "zeroshot"
 
         pass
+
+    def set_full_prompt(self, full_prompt):
+        self.full_prompt = full_prompt
+
+    def set_modify(self, modify):
+        if modify:
+            self.class_labels = MOD_CLASSES
+        else:
+            self.class_labels = CLASSES
+
+    def set_prompt_template(self, prompt_template):
+        self.prompt_template = prompt_template
 
     def set_testing_mode(self, mode):
         mode = mode.lower()
@@ -196,7 +209,7 @@ class customCLIP:
         for img_paths, labels in tqdm(class_dataloader, desc=f"Classifying {eval_class} batches: ", leave=True):
             y_true.extend(labels.cpu().numpy())
 
-            preds, _ = self.classify_images_clip(image_paths=img_paths)
+            preds, _, _ = self.classify_images_clip(image_paths=img_paths)
             y_pred.extend(preds.cpu().numpy())
 
         results = {
