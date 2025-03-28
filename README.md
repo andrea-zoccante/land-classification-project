@@ -1,6 +1,6 @@
 # EuroSAT Land Cover Classification with CLIP
 
-This project explores land cover classification using the EuroSAT satellite imagery dataset, leveraging the power of vision-language foundation models—specifically, CLIP. The goal is to evaluate and compare zero-shot and few-shot classification techniques using linear probing, MLP classifiers, logistic regression, and prompt learning via CoOp.
+This project explores land cover classification using the EuroSAT satellite imagery dataset, leveraging the power of vision-language foundation models—specifically, CLIP. The goal is to evaluate and compare zero-shot and few-shot classification techniques using linear probing, MLP classifiers, logistic regression and prompt learning via CoOp.
 
 ## Project Overview
 
@@ -38,7 +38,7 @@ This dataset serves as a benchmark to test the generalization capabilities of CL
 
 This module defines the `customCLIP` class, which wraps the HuggingFace CLIP model and provides utilities for:
 
-- Initializing the model with configurable options for prompt style, class labels, and image augmentation.
+- Initializing the model with configurable options for prompt style, class labels and image augmentation.
 - Zero-shot classification using CLIP’s built-in similarity scoring between image features and text prompts.
 - Few-shot training and evaluation using different classifiers:
   - Linear probe
@@ -85,7 +85,7 @@ conda activate land-classification
 
 ## Streamlit Demo App
 
-A visual demo is available via `app_demo.py`, built using Streamlit. This interactive interface allows users to upload a satellite image and classify it into one of the EuroSAT land cover classes using any of the pre-trained models provided in the `models/` folder. Users can select between zero-shot CLIP, linear/MLP/logistic probes, or CoOp prompt learning. Model settings such as prompt templates and few-shot sizes are configurable directly in the UI.
+A visual demo is available via `app_demo.py`, built using Streamlit. This interactive interface allows users to upload a satellite image and classify it into one of the EuroSAT land cover classes using any of the pre-trained models provided in the `models/` folder. Users can select between zero-shot CLIP, linear/MLP/logistic probes or CoOp prompt learning. Model settings such as prompt templates and few-shot sizes are configurable directly in the UI.
 
 To launch the app, run:
 
