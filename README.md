@@ -32,6 +32,10 @@ The [EuroSAT dataset](https://github.com/phelber/eurosat) consists of 27,000+ RG
 
 This dataset serves as a benchmark to test the generalization capabilities of CLIP in a remote sensing context.
 
+Click on this [link](https://madm.dfki.de/files/sentinel/EuroSAT.zip) to download directly the zip file of the dataset. It's important to place it in the same directory with the code without changing any name in it: it should be named `./2750/` containing the 10 folders named and ordered as presented in the list above.
+
+
+
 ## Relevant Code Files
 
 ### `customCLIP.py`
@@ -99,4 +103,4 @@ This project is based on the following foundational works:
 
 - [CLIP: Learning Transferable Visual Models From Natural Language Supervision](https://arxiv.org/abs/2103.00020)
 - [CoOp: Learning to Prompt for Vision-Language Models](https://arxiv.org/abs/2109.01134)
-- [ECO: Ensembling Context Optimization for Vision-Language Models](https://arxiv.org/abs/2305.13827)
+
