@@ -83,6 +83,16 @@ conda activate land-classification
 - The CoOp method implements class-specific prompt learning by optimizing learnable context vectors that are prepended to each class label.
 - Zero-shot classification performance is influenced significantly by the phrasing and formatting of text prompts, making prompt design an important factor in evaluation.
 
+## Streamlit Demo App
+
+A visual demo is available via `app_demo.py`, built using Streamlit. This interactive interface allows users to upload a satellite image and classify it into one of the EuroSAT land cover classes using any of the pre-trained models provided in the `models/` folder. Users can select between zero-shot CLIP, linear/MLP/logistic probes, or CoOp prompt learning. Model settings such as prompt templates and few-shot sizes are configurable directly in the UI.
+
+To launch the app, run:
+
+```bash
+streamlit run app_demo.py
+```
+
 ## References
 
 This project is based on the following foundational works:
